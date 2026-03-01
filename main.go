@@ -38,6 +38,8 @@ func main() {
 
 	fs := flag.NewFlagSet("pubsub2postgresaudit", flag.ExitOnError)
 
+	// Register flags with env var values as defaults (env var takes effect
+	// unless overridden by an explicit flag on the command line).
 	dbHost := flagOrEnv(fs, "db-host", "DB_HOST", "localhost", "PostgreSQL hostname")
 	dbPort := flagOrEnv(fs, "db-port", "DB_PORT", "5432", "PostgreSQL port")
 	dbUser := flagOrEnv(fs, "db-user", "DB_USER", "postgres", "Database user")
@@ -47,17 +49,14 @@ func main() {
 	dbSchema := flagOrEnv(fs, "db-schema", "DB_SCHEMA", "public", "Database schema")
 	dbTable := flagOrEnv(fs, "db-table", "DB_TABLE", "", "Table name (required)")
 	pubsubSub := flagOrEnv(fs, "pubsub-subscription", "PUBSUB_SUBSCRIPTION", "", "Full Pub/Sub subscription name (required)")
-	createTable := fs.Bool("create-table", false, "Create table if missing")
+	createTableDefault := false
+	if v := os.Getenv("CREATE_TABLE"); v == "true" || v == "1" {
+		createTableDefault = true
+	}
+	createTable := fs.Bool("create-table", createTableDefault, "Create table if missing")
 	healthPort := flagOrEnv(fs, "health-port", "HEALTH_PORT", "", "Port for health endpoints")
 
 	fs.Parse(args)
-
-	// Apply env var for create-table boolean
-	if !isFlagSet(fs, "create-table") {
-		if v := os.Getenv("CREATE_TABLE"); v == "true" || v == "1" {
-			*createTable = true
-		}
-	}
 
 	cfg := &config.Config{
 		DBHost:             *dbHost,
@@ -136,20 +135,12 @@ func main() {
 	}
 }
 
+// flagOrEnv registers a string flag whose default is overridden by the
+// environment variable envKey when set. Explicit flags on the command
+// line take precedence because fs.Parse() overwrites the default.
 func flagOrEnv(fs *flag.FlagSet, name, envKey, defaultVal, usage string) *string {
-	val := fs.String(name, defaultVal, usage)
-	if envVal := os.Getenv(envKey); envVal != "" && !isFlagSet(fs, name) {
-		*val = envVal
+	if envVal := os.Getenv(envKey); envVal != "" {
+		defaultVal = envVal
 	}
-	return val
-}
-
-func isFlagSet(fs *flag.FlagSet, name string) bool {
-	found := false
-	fs.Visit(func(f *flag.Flag) {
-		if f.Name == name {
-			found = true
-		}
-	})
-	return found
+	return fs.String(name, defaultVal, usage)
 }

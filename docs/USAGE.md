@@ -69,6 +69,27 @@ All configuration is available via command line flags or environment variables. 
 |------|----------------------|---------|-------------|
 | `--pubsub-subscription` | `PUBSUB_SUBSCRIPTION` | *(empty, required)* | Full subscription name (`projects/<p>/subscriptions/<s>`) |
 
+### Message Compression
+
+The consumer supports compressed message payloads. Set the `compression` attribute on a Pub/Sub message to indicate the compression algorithm used for the message body:
+
+| Attribute Value | Algorithm |
+|-----------------|-----------|
+| `gzip` | gzip compression |
+| `zstd` | Zstandard compression |
+
+If the `compression` attribute is absent, the message body is treated as uncompressed JSON.
+
+**Example (publishing a gzip-compressed message with the Google Cloud SDK):**
+
+```bash
+gcloud pubsub topics publish my-topic \
+  --message="$(echo '{"event":"login"}' | gzip | base64)" \
+  --attribute="compression=gzip"
+```
+
+Messages that fail to decompress are acknowledged and logged with outcome `decompression_error`.
+
 ### Additional Options
 
 | Flag | Environment Variable | Default | Description |

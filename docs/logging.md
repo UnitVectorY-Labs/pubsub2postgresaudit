@@ -41,6 +41,7 @@ Each message processing attempt produces a structured log event with the followi
 | `inserted` | Row was successfully inserted | Yes |
 | `duplicate` | Message ID already exists (conflict on primary key) | Yes |
 | `invalid_json` | Message data was not valid JSON | Yes |
+| `decompression_error` | Message data could not be decompressed | Yes |
 | `db_error` | Database operation failed | No (nack) |
 | `pubsub_error` | Pub/Sub receive error | N/A |
 

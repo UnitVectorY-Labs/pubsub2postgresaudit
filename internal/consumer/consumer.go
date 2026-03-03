@@ -1,15 +1,19 @@
 package consumer
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/klauspost/compress/zstd"
 
 	"github.com/UnitVectorY-Labs/pubsub2postgresaudit/internal/config"
 	"github.com/UnitVectorY-Labs/pubsub2postgresaudit/internal/database"
@@ -75,16 +79,29 @@ func handleMessage(ctx context.Context, cfg *config.Config, db *sql.DB, msg *pub
 		return
 	}
 
+	// Decompress data if the "compression" attribute is set
+	data := msg.Data
+	if compression, ok := msg.Attributes["compression"]; ok {
+		data, err = decompressData(compression, msg.Data)
+		if err != nil {
+			slog.Warn("failed to decompress message",
+				append(logAttrs, "outcome", "decompression_error", "compression", compression, "error", err.Error(), "byte_size", len(msg.Data))...,
+			)
+			msg.Ack()
+			return
+		}
+	}
+
 	// Validate data is valid JSON
-	if !json.Valid(msg.Data) {
+	if !json.Valid(data) {
 		slog.Warn("invalid JSON data",
-			append(logAttrs, "outcome", "invalid_json", "error", "data is not valid JSON", "byte_size", len(msg.Data))...,
+			append(logAttrs, "outcome", "invalid_json", "error", "data is not valid JSON", "byte_size", len(data))...,
 		)
 		msg.Ack()
 		return
 	}
 
-	inserted, err := database.InsertMessage(ctx, db, cfg.DBSchema, cfg.DBTable, msg.ID, msg.PublishTime, json.RawMessage(attrJSON), json.RawMessage(msg.Data))
+	inserted, err := database.InsertMessage(ctx, db, cfg.DBSchema, cfg.DBTable, msg.ID, msg.PublishTime, json.RawMessage(attrJSON), json.RawMessage(data))
 	if err != nil {
 		slog.Error("database insert error",
 			append(logAttrs, "outcome", "db_error", "error", err.Error())...,
@@ -99,4 +116,35 @@ func handleMessage(ctx context.Context, cfg *config.Config, db *sql.DB, msg *pub
 		slog.Info("duplicate message", append(logAttrs, "outcome", "duplicate")...)
 	}
 	msg.Ack()
+}
+
+// decompressData decompresses the given data using the specified algorithm.
+// Supported algorithms are "gzip" and "zstd".
+func decompressData(algorithm string, data []byte) ([]byte, error) {
+	switch algorithm {
+	case "gzip":
+		r, err := gzip.NewReader(bytes.NewReader(data))
+		if err != nil {
+			return nil, fmt.Errorf("creating gzip reader: %w", err)
+		}
+		defer r.Close()
+		out, err := io.ReadAll(r)
+		if err != nil {
+			return nil, fmt.Errorf("reading gzip data: %w", err)
+		}
+		return out, nil
+	case "zstd":
+		r, err := zstd.NewReader(bytes.NewReader(data))
+		if err != nil {
+			return nil, fmt.Errorf("creating zstd reader: %w", err)
+		}
+		defer r.Close()
+		out, err := io.ReadAll(r)
+		if err != nil {
+			return nil, fmt.Errorf("reading zstd data: %w", err)
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("unsupported compression algorithm: %q", algorithm)
+	}
 }

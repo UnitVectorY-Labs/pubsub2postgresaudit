@@ -4,6 +4,7 @@ go 1.26.0 // GOVERSION
 
 require (
 	cloud.google.com/go/pubsub v1.50.1
+	github.com/klauspost/compress v1.18.4
 	github.com/lib/pq v1.11.2
 )
 
@@ -21,7 +22,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
-	github.com/klauspost/compress v1.18.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect

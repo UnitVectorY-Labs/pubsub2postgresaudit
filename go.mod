@@ -3,7 +3,7 @@ module github.com/UnitVectorY-Labs/pubsub2postgresaudit
 go 1.26 // GOVERSION
 
 require (
-	cloud.google.com/go/pubsub v1.51.0
+	cloud.google.com/go/pubsub v1.51.1
 	github.com/klauspost/compress v1.19.2
 	github.com/lib/pq v1.12.3
 )

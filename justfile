@@ -1,13 +1,12 @@
 
-# List all available commands
+# Commands for pubsub2postgresaudit
 default:
   @just --list
-
-# Build the Go application
+# Build pubsub2postgresaudit with Go
 build:
   go build ./...
 
-# Run the Go tests
+# Run tests for pubsub2postgresaudit with Go
 test:
   go clean -testcache
   go test ./...
@@ -30,4 +29,3 @@ docs-serve:
   bundle config set --local path vendor/bundle
   bundle check >/dev/null || bundle install
   bundle exec jekyll serve --host 127.0.0.1 --port 4000 --livereload
-

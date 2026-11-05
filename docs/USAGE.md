@@ -1,135 +1,71 @@
 ---
 layout: default
 title: Usage
-nav_order: 2
+nav_order: 4
 permalink: /usage
 ---
 
 # Usage
-{: .no_toc }
 
-## Table of Contents
-{: .no_toc .text-delta }
+## Configure connections
 
-- TOC
-{:toc}
-
----
-
-## Running the Consumer
-
-The default behavior (no subcommand) runs the consumer service that pulls messages from Pub/Sub and inserts them into PostgreSQL.
+The examples below use the binary built in [Installation](INSTALL.md). Replace the project, subscription, and database values for your environment. Supply `DB_PASSWORD` through your environment or secret manager.
 
 ```bash
-pubsub2postgresaudit \
-  --db-host=localhost \
-  --db-port=5432 \
-  --db-user=postgres \
-  --db-password=secret \
-  --db-name=mydb \
-  --db-table=audit_log \
-  --pubsub-subscription=projects/my-project/subscriptions/my-sub
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_USER=postgres
+export DB_NAME=mydb
+export DB_SCHEMA=public
+export DB_TABLE=audit_log
+export PUBSUB_SUBSCRIPTION=projects/my-project/subscriptions/audit-sub
 ```
 
-## Migrate Command
+See [Configuration](CONFIGURATION.md) for every setting. For remote databases, configure `DB_SSLMODE` to meet your database's TLS requirements; its default is `disable`.
 
-The `migrate` subcommand creates the required database table and exits. It is idempotent and safe to run repeatedly.
+## Create the table
 
 ```bash
-pubsub2postgresaudit migrate \
-  --db-host=localhost \
-  --db-port=5432 \
-  --db-user=postgres \
-  --db-password=secret \
-  --db-name=mydb \
-  --db-table=audit_log \
-  --pubsub-subscription=projects/my-project/subscriptions/my-sub
+./pubsub2postgresaudit migrate
 ```
 
-## Configuration
+This creates the table if missing and exits. It does not create the database or schema, modify an existing table, or require a Pub/Sub connection. It still requires the subscription setting for configuration validation.
 
-All configuration is available via command line flags or environment variables. Command line flags take precedence over environment variables when both are provided.
+For automatic creation at consumer startup, use `--create-table` instead. Prefer a separate migration role when the runtime identity should only insert rows.
 
-### PostgreSQL Configuration
-
-| Flag | Environment Variable | Default | Description |
-|------|---------------------|---------|-------------|
-| `--db-host` | `DB_HOST` | `localhost` | PostgreSQL server hostname |
-| `--db-port` | `DB_PORT` | `5432` | PostgreSQL server port |
-| `--db-user` | `DB_USER` | `postgres` | Database user |
-| `--db-password` | `DB_PASSWORD` | *(empty)* | Database password |
-| `--db-name` | `DB_NAME` | `cert_observatory` | Database name |
-| `--db-sslmode` | `DB_SSLMODE` | `disable` | SSL mode (`disable`, `require`, `verify-ca`, `verify-full`) |
-| `--db-schema` | `DB_SCHEMA` | `public` | Destination schema |
-| `--db-table` | `DB_TABLE` | *(empty, required)* | Destination table name |
-
-### Pub/Sub Configuration
-
-| Flag | Environment Variable | Default | Description |
-|------|----------------------|---------|-------------|
-| `--pubsub-subscription` | `PUBSUB_SUBSCRIPTION` | *(empty, required)* | Full subscription name (`projects/<p>/subscriptions/<s>`) |
-
-### Message Compression
-
-The consumer supports compressed message payloads. Set the `compression` attribute on a Pub/Sub message to indicate the compression algorithm used for the message body:
-
-| Attribute Value | Algorithm |
-|-----------------|-----------|
-| `gzip` | gzip compression |
-| `zstd` | Zstandard compression |
-
-If the `compression` attribute is absent, the message body is treated as uncompressed JSON.
-
-**Example (publishing a gzip-compressed message with the Google Cloud SDK):**
+## Run the consumer
 
 ```bash
-gcloud pubsub topics publish my-topic \
-  --message="$(echo '{"event":"login"}' | gzip | base64)" \
-  --attribute="compression=gzip"
+./pubsub2postgresaudit --health-port=8080
 ```
 
-Messages that fail to decompress are acknowledged and logged with outcome `decompression_error`.
+The default command pulls messages until SIGINT or SIGTERM. Successful inserts and duplicate IDs are acknowledged. Database errors negatively acknowledge the message so Pub/Sub can redeliver it. Invalid JSON or invalid compression is acknowledged and discarded; monitor the [logs](LOGGING.md).
 
-### Additional Options
+Each process maps one subscription to one table. Multiple replicas can share that subscription and table; the primary key prevents duplicate rows for a redelivered Pub/Sub message ID. Republishing an event produces a new message ID and may store another row.
 
-| Flag | Environment Variable | Default | Description |
-|------|----------------------|---------|-------------|
-| `--create-table` | `CREATE_TABLE` | `false` | Create table if it does not exist |
-| `--health-port` | `HEALTH_PORT` | *(empty)* | Port for health check endpoints (off by default) |
-
-### Google Authentication
-
-The application uses Google Application Default Credentials (ADC):
-
-- Set `GOOGLE_APPLICATION_CREDENTIALS` to point to a service account key file
-- Or rely on Workload Identity Federation, Compute Engine metadata, or other ADC-compatible methods
-
-## Health Endpoints
-
-Health endpoints are off by default. Enable them by setting `--health-port` or `HEALTH_PORT`:
+## Check health and delivery
 
 ```bash
-pubsub2postgresaudit \
-  --db-table=audit_log \
-  --pubsub-subscription=projects/my-project/subscriptions/my-sub \
-  --health-port=8080
+curl --fail http://localhost:8080/healthz
+curl --fail http://localhost:8080/readyz
 ```
 
-- `GET /healthz` — Liveness probe. Returns `200 OK` when the process is running.
-- `GET /readyz` — Readiness probe. Returns `200 OK` only when PostgreSQL is reachable and the Pub/Sub client has been initialized.
+Health endpoints are disabled unless `HEALTH_PORT` or `--health-port` is set. `/healthz` reports process liveness. `/readyz` checks the startup readiness flag and PostgreSQL connectivity; it does not verify Pub/Sub permissions, subscription availability, or successful receipt of messages.
 
-## Docker
+Use the [publish and query example](EXAMPLES.md) to verify the full path.
+
+## Run in Docker
+
+Provide the same settings in a private environment file, here named `audit.env`, and mount credentials if your environment does not provide ADC:
 
 ```bash
-docker run \
-  -e DB_HOST=postgres \
-  -e DB_PORT=5432 \
-  -e DB_USER=postgres \
-  -e DB_PASSWORD=secret \
-  -e DB_NAME=mydb \
-  -e DB_TABLE=audit_log \
-  -e PUBSUB_SUBSCRIPTION=projects/my-project/subscriptions/my-sub \
+docker run --rm --name audit-consumer \
+  --env-file audit.env \
   -e GOOGLE_APPLICATION_CREDENTIALS=/creds/sa.json \
-  -v /path/to/creds:/creds:ro \
-  ghcr.io/unitvectory-labs/pubsub2postgresaudit
+  -e HEALTH_PORT=8080 \
+  -p 127.0.0.1:8080:8080 \
+  -v /absolute/path/to/sa.json:/creds/sa.json:ro \
+  pubsub2postgresaudit:local
 ```
+
+Set `DB_HOST` to a hostname reachable from the container; `localhost` refers to the container itself. Run migrations first, or include `CREATE_TABLE=true` in the environment file. To migrate with the image, use the same environment and credential mounts with `--entrypoint /server` before the image name and `migrate` after it.

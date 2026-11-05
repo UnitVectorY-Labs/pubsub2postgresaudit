@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Logging
-nav_order: 4
+nav_order: 7
 permalink: /logging
 ---
 
@@ -49,3 +49,5 @@ Each message processing attempt produces a structured log event with the followi
 
 - Logs **never** include the full message payload (`data` field)
 - For invalid JSON messages, the log includes the parse error and byte size of the payload, but not the payload content
+
+Monitor `invalid_json` and `decompression_error`: these outcomes discard the message without inserting a row. `db_error` causes redelivery according to the subscription policy. Readiness alone does not confirm successful delivery; use [Examples](EXAMPLES.md) to test publishing and storage.

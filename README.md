@@ -20,3 +20,10 @@ Key features:
 ## Documentation
 
 See the [documentation site](https://unitvectory-labs.github.io/pubsub2postgresaudit/) for detailed usage, configuration, and database schema information.
+
+## Related projects
+
+- [ghook2pubsub](https://github.com/UnitVectorY-Labs/ghook2pubsub) receives GitHub webhooks and publishes them to Pub/Sub; pubsub2postgresaudit can archive those events in PostgreSQL.
+- [ghook4action](https://github.com/UnitVectorY-Labs/ghook4action) consumes GitHub events from Pub/Sub and triggers GitHub Actions workflows. Use separate subscriptions on the same topic to audit events and trigger workflows independently.
+
+Start with the [documentation index](docs/README.md), [installation](docs/INSTALL.md), and [usage guide](docs/USAGE.md).

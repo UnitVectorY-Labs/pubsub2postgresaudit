@@ -19,10 +19,12 @@ All configuration is available via command line flags or environment variables. 
 | `--db-port` | `DB_PORT` | `5432` | PostgreSQL server port |
 | `--db-user` | `DB_USER` | `postgres` | Database user |
 | `--db-password` | `DB_PASSWORD` | *(empty)* | Database password |
-| `--db-name` | `DB_NAME` | `cert_observatory` | Database name |
+| `--db-name` | `DB_NAME` | Built-in application default | Set explicitly to your database name |
 | `--db-sslmode` | `DB_SSLMODE` | `disable` | SSL mode (`disable`, `require`, `verify-ca`, `verify-full`) |
 | `--db-schema` | `DB_SCHEMA` | `public` | Destination schema |
 | `--db-table` | `DB_TABLE` | *(empty, required)* | Destination table name |
+
+The application has a built-in database name default. Set `DB_NAME` explicitly, as shown in [Usage](USAGE.md#configure-connections), to select your own database.
 
 ### Pub/Sub Configuration
 

@@ -21,6 +21,6 @@ See [Database](DATABASE.md) for the storage contract and [Logging](LOGGING.md) f
 ## Related applications
 
 - [ghook2pubsub](https://github.com/UnitVectorY-Labs/ghook2pubsub) receives GitHub webhooks and publishes them to Pub/Sub; this consumer can archive those messages.
-- [ghook4action](https://github.com/UnitVectorY-Labs/ghook4action) consumes GitHub events from Pub/Sub and triggers GitHub Actions workflows. Give it a separate subscription on the same topic to process events independently of auditing.
+- [ghook4action](https://github.com/UnitVectorY-Labs/ghook4action) consumes GitHub events from Pub/Sub and adds matching opened issues and pull requests to GitHub organization Projects. Give it a separate subscription on the same topic to process events independently of auditing.
 
 The consumer also accepts JSON messages from other publishers. Invalid JSON and decompression failures are acknowledged without storage; database failures are retried. Plan monitoring around these [outcomes](LOGGING.md).

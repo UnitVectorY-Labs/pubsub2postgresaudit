@@ -33,7 +33,7 @@ WHERE data->>'event' = 'login';
 
 Substitute your configured schema and table. JSONB retains JSON values, not the original byte formatting.
 
-## Archive GitHub events alongside workflow automation
+## Archive GitHub events alongside project automation
 
 Point [ghook2pubsub](https://github.com/UnitVectorY-Labs/ghook2pubsub) at a Pub/Sub topic, create a dedicated audit subscription on that topic, and configure this application with its full subscription name. If [ghook4action](https://github.com/UnitVectorY-Labs/ghook4action) also consumes that topic, give it its own subscription.
 

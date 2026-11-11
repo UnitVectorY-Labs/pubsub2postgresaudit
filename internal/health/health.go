@@ -2,7 +2,8 @@ package health
 
 import (
 	"database/sql"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"net"
 	"net/http"
 	"sync/atomic"
@@ -32,7 +33,7 @@ func (c *Checker) Start(port string) error {
 func (c *Checker) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	json.MarshalEncode(jsontext.NewEncoder(w), map[string]string{"status": "ok"})
 }
 
 func (c *Checker) handleReadyz(w http.ResponseWriter, r *http.Request) {
@@ -40,16 +41,16 @@ func (c *Checker) handleReadyz(w http.ResponseWriter, r *http.Request) {
 
 	if !c.Ready.Load() {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]string{"status": "not_ready"})
+		json.MarshalEncode(jsontext.NewEncoder(w), map[string]string{"status": "not_ready"})
 		return
 	}
 
 	if err := c.DB.Ping(); err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]string{"status": "not_ready"})
+		json.MarshalEncode(jsontext.NewEncoder(w), map[string]string{"status": "not_ready"})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	json.MarshalEncode(jsontext.NewEncoder(w), map[string]string{"status": "ok"})
 }

@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"regexp"
 	"time"
@@ -68,7 +68,7 @@ func Migrate(ctx context.Context, db *sql.DB, schema, table string) error {
 
 // InsertMessage inserts a Pub/Sub message into the audit table.
 // On conflict (duplicate message_id) it returns inserted=false, err=nil.
-func InsertMessage(ctx context.Context, db *sql.DB, schema, table, messageID string, publishTime time.Time, attributes, data json.RawMessage) (bool, error) {
+func InsertMessage(ctx context.Context, db *sql.DB, schema, table, messageID string, publishTime time.Time, attributes, data jsontext.Value) (bool, error) {
 	if err := ValidateIdentifier(schema); err != nil {
 		return false, err
 	}

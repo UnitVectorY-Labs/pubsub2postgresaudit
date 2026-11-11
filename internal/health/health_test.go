@@ -16,6 +16,9 @@ func TestHealthz_ReturnsOK(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("healthz status = %d, want %d", w.Code, http.StatusOK)
 	}
+	if body := w.Body.String(); body != "{\"status\":\"ok\"}\n" {
+		t.Fatalf("healthz body = %q", body)
+	}
 	if ct := w.Header().Get("Content-Type"); ct != "application/json" {
 		t.Fatalf("content-type = %q, want application/json", ct)
 	}
@@ -29,6 +32,9 @@ func TestReadyz_NotReady(t *testing.T) {
 
 	c.handleReadyz(w, req)
 
+	if body := w.Body.String(); body != "{\"status\":\"not_ready\"}\n" {
+		t.Fatalf("readyz body = %q", body)
+	}
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("readyz status = %d, want %d", w.Code, http.StatusServiceUnavailable)
 	}

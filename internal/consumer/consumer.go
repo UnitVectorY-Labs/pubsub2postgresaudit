@@ -5,7 +5,8 @@ import (
 	"compress/gzip"
 	"context"
 	"database/sql"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"log/slog"
@@ -93,7 +94,7 @@ func handleMessage(ctx context.Context, cfg *config.Config, db *sql.DB, msg *pub
 	}
 
 	// Validate data is valid JSON
-	if !json.Valid(data) {
+	if !jsontext.Value(data).IsValid() {
 		slog.Warn("invalid JSON data",
 			append(logAttrs, "outcome", "invalid_json", "error", "data is not valid JSON", "byte_size", len(data))...,
 		)
@@ -101,7 +102,7 @@ func handleMessage(ctx context.Context, cfg *config.Config, db *sql.DB, msg *pub
 		return
 	}
 
-	inserted, err := database.InsertMessage(ctx, db, cfg.DBSchema, cfg.DBTable, msg.ID, msg.PublishTime, json.RawMessage(attrJSON), json.RawMessage(data))
+	inserted, err := database.InsertMessage(ctx, db, cfg.DBSchema, cfg.DBTable, msg.ID, msg.PublishTime, jsontext.Value(attrJSON), jsontext.Value(data))
 	if err != nil {
 		slog.Error("database insert error",
 			append(logAttrs, "outcome", "db_error", "error", err.Error())...,

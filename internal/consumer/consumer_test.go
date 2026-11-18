@@ -3,9 +3,15 @@ package consumer
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
+	"log/slog"
+	"strings"
 	"testing"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/klauspost/compress/zstd"
+
+	"github.com/UnitVectorY-Labs/pubsub2postgresaudit/internal/config"
 )
 
 func TestParseSubscription_Valid(t *testing.T) {
@@ -112,5 +118,27 @@ func TestDecompressData_ZstdInvalidData(t *testing.T) {
 	_, err := decompressData("zstd", []byte("not zstd data"))
 	if err == nil {
 		t.Error("expected error for invalid zstd data, got nil")
+	}
+}
+
+func TestHandleMessageRejectsInvalidJSON(t *testing.T) {
+	cases := map[string][]byte{
+		"duplicate names":        []byte(`{"outer":{"name":1,"name":2}}`),
+		"invalid UTF-8":          {'"', 0xff, '"'},
+		"invalid Unicode escape": []byte(`"\ud800"`),
+		"multiple values":        []byte(`{} {}`),
+	}
+	for name, data := range cases {
+		t.Run(name, func(t *testing.T) {
+			var logs bytes.Buffer
+			previous := slog.Default()
+			slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+			defer slog.SetDefault(previous)
+			// A nil database also ensures rejected messages never reach insertion.
+			handleMessage(context.Background(), &config.Config{}, nil, &pubsub.Message{Data: data})
+			if !strings.Contains(logs.String(), "outcome=invalid_json") {
+				t.Fatalf("expected invalid_json outcome, got %s", logs.String())
+			}
+		})
 	}
 }

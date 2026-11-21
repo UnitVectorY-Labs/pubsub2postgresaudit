@@ -25,5 +25,6 @@ See the [documentation site](https://unitvectory-labs.github.io/pubsub2postgresa
 
 - [ghook2pubsub](https://github.com/UnitVectorY-Labs/ghook2pubsub) receives GitHub webhooks and publishes them to Pub/Sub; pubsub2postgresaudit can archive those events in PostgreSQL.
 - [ghook4action](https://github.com/UnitVectorY-Labs/ghook4action) consumes GitHub events from Pub/Sub and adds matching opened issues and pull requests to GitHub organization Projects. Use separate subscriptions on the same topic to audit events and update Projects independently.
+- [pubsub2webhook](https://github.com/UnitVectorY-Labs/pubsub2webhook) consumes Pub/Sub messages and replays them as HTTP webhook requests to internal or external endpoints through its own subscription.
 
 Start with the [documentation index](docs/README.md), [installation](docs/INSTALL.md), and [usage guide](docs/USAGE.md).

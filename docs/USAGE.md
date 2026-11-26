@@ -39,7 +39,7 @@ For automatic creation at consumer startup, use `--create-table` instead. Prefer
 ./pubsub2postgresaudit --health-port=8080
 ```
 
-The default command pulls messages until SIGINT or SIGTERM. Successful inserts and duplicate IDs are acknowledged. Database errors negatively acknowledge the message so Pub/Sub can redeliver it. Invalid JSON or invalid compression is acknowledged and discarded; monitor the [logs](LOGGING.md).
+The default command pulls messages until SIGINT or SIGTERM. Successful inserts and duplicate IDs are acknowledged. Database errors negatively acknowledge the message so Pub/Sub can redeliver it. Invalid JSON or invalid compression is acknowledged and discarded; monitor the [logs](LOGGING.md). JSON with duplicate object names, invalid UTF-8, or invalid Unicode escapes is rejected.
 
 Each process maps one subscription to one table. Multiple replicas can share that subscription and table; the primary key prevents duplicate rows for a redelivered Pub/Sub message ID. Republishing an event produces a new message ID and may store another row.
 
